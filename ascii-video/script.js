@@ -7,33 +7,40 @@ const video = document.createElement("video");
 video.muted = true;
 video.playsInline = true;
 video.loop = true;
+video.preload = "auto";
 
-input.addEventListener("change", e => {
+let isReady = false;
 
-const file = e.target.files[0];
+input.addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
 
-if(!file) return;
+  isReady = false;
 
-video.src = URL.createObjectURL(file);
+  video.pause();
+  video.src = URL.createObjectURL(file);
 
-video.onloadedmetadata = () => {
+  video.load();
 
-canvas.width = video.videoWidth;
+  video.onloadeddata = () => {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-canvas.height = video.videoHeight;
+    isReady = true;
 
-video.play();
+    // ВАЖНО: play() может требовать user gesture → вызываем через promise
+    video.play().catch(err => {
+      console.log("Play blocked:", err);
+    });
 
-requestAnimationFrame(render);
-
-};
-
+    requestAnimationFrame(render);
+  };
 });
 
-function render(){
+function render() {
+  if (isReady) {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  }
 
-ctx.drawImage(video,0,0);
-
-requestAnimationFrame(render);
-
+  requestAnimationFrame(render);
 }
